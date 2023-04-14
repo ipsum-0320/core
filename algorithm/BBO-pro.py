@@ -3,6 +3,7 @@ import random
 import os
 import math
 import sys
+
 sys.dont_write_bytecode = True
 
 from typing import TypedDict, List
@@ -75,6 +76,14 @@ class BBO:
     self.neighbor_num = 5 # 每个栖息地的相邻栖息地个数。
     self.maturity_max = 0.75 # 成熟度的最大值。
     self.maturity_min = 0.3 # 成熟度的最小值。
+    self.iteration_threshold = 550 # 进入后期变异概率自适应阶段的迭代次数阈值。
+    self.mutation_m1 = 0.01 # 前期寻优阶段的固定变异概率。
+    self.mutation_m2 = 0.0025 # 后期自适应阶段的基础变异概率。
+    self.HSI_sum = 0 # 群体 HSI 的均值。
+    self.HSI_min = sys.maxsize # 群体中 HSI 的最小值。 
+    self.HSI_min_ids = [] # 群体中具有最小 HSI 值的 id（可能有多个）。
+    self.mutation_to_node00_list_len = 3 # 变异为 node00 的随机数列表长度。
+
 
     # 定义变量。
     self.solutions = [] # 一个复杂的数据结构，包含 id、解、迁入迁出率和 HSI 值。
@@ -83,6 +92,7 @@ class BBO:
     self.task_calc_metrics = [self.task_calc_density * task["calcMetrics"] for task in self.info["tasks"]] # 任务的计算量。
     self.calc_abilities = self.get_calc_ability() # node 的计算能力。
     self.link_matrix = np.ones((self.population_size, self.population_size), dtype = int) # 拓扑结构采用随机结构，邻接矩阵[i][j] == 1 表示相邻，[i][j] == 0 表示不相邻。
+
 
     for i in range(0, self.population_size):
       self.solutions.append({
@@ -99,18 +109,37 @@ class BBO:
       for j in range(0, self.vector_size):
         self.solutions[i]["vector"][j] = random.randint(0, self.node_quantity - 1)
         if self.info["tasks"][j]["calcMetrics"] > self.calc_metrics_threshold:
-          self.solutions[i]["vector"][j] = 0 # 将计算量较大的任务初始分配给 node00。  
+          self.solutions[i]["vector"][j] = 0 # 将计算量较大的任务初始分配给 node00（输出保证 0 号元素就是 node00）。
       self.get_HSI(self.solutions[i])
       self.solutions[i]["id"] = i # 绑定编号和解，之后判断是否链接通过 id 判断。
       self.solutions_map[i] = self.solutions[i]
-    
-    self.solutions.sort(key=lambda el: el["HSI"], reverse=True) # 为了方便迁移率的计算，按照 HSI 的值降序排序，越靠前，解越差。
-    for i in range(0, self.population_size): # 初始化迁移率。
-      self.get_move(self.solutions[i], i)
+      self.HSI_sum += self.solutions[i]["HSI"]
+      self.get_HSI_min(self.solutions[i])
     
     # 开始迭代算法。
     for i in range(0, self.iterations):
-      i
+      self.solutions.sort(key=lambda el: el["HSI"], reverse=True) 
+      # 为了方便迁移率的计算，按照 HSI 的值降序排序，越靠前，解越差。
+      for j in range(0, self.population_size):
+        # 计算迁移率。
+        self.get_move(self.solutions[j], j)
+      for j in range(0, len(self.solutions)):
+        self.move(self.solutions[j], i)
+        self.mutation(self.solutions[j], i)
+
+    self.solutions.sort(key=lambda el: el["HSI"]) # 按照 HSI 的值升序排序，排序最前的即是最优解。
+  
+  def get_solution(self):
+    best_solution = self.solutions[0]["vector"]
+    best_solution_map_list = []
+    for i in range(0, len(self.info["tasks"])):
+      best_solution_map = {
+        "podName": self.info["tasks"][i]["podName"],
+        "image": self.info["tasks"][i]["image"],
+        "nodeName": "node0%d" % best_solution[i]
+      }
+      best_solution_map_list.append(best_solution_map)
+    return best_solution_map_list
     
   def get_move(self, solution, index):
     # 计算迁入迁出率。
@@ -144,7 +173,7 @@ class BBO:
   
   def move(self, solution, current_iteration):
     # 进行迁移操作，current_iteration 的取值范围是 [0, self.iterations - 1]。
-    new_solution = solution.copy()
+    copy_solution = solution.copy()
     current_maturity = self.maturity_max - ((current_iteration / (self.iterations - 1)) * (self.maturity_max - self.maturity_min)) # 计算成熟度，该值用来计算本次迁移是进行全局迁移还是进行局部迁移。
     for i in range(0, self.vector_size): # 针对解向量中的每个元素。
       if random.random() > solution["move_in"]: continue # 不迁移。
@@ -175,13 +204,34 @@ class BBO:
             # 相邻栖息地迁入。
             solution["vector"][i] = selected_adjacent_solution["vector"][i]
     self.get_HSI(solution) # 计算新栖息地的 HSI
-    if solution["HSI"] < new_solution["HSI"]: return solution
-    else: return new_solution
-    # 以上为精英保存策略，防止劣化解。
+    if solution["HSI"] < copy_solution["HSI"]: # 得到优化解。
+      self.HSI_sum -= copy_solution["HSI"] # 更新 HSI_sum。
+      self.HSI_sum += solution["HSI"]
+      self.get_HSI_min(solution) # 更新 HSI_min。
+    else: # 得到劣化解。
+      solution["HSI"] = copy_solution["HSI"]
+      solution["vector"] = copy_solution["vector"]
+      # 以上为精英保存策略，防止劣化解。
     
-    
-  def mutation(self):
-    print()
+  def mutation(self, solution, current_iteration):
+    # 算法的变异阶段分为两部分，前期执行固定概率的变异操作，而后期则使变异概率随着则随着解质量的改变而动态变化。
+    mutation_p = None
+    if current_iteration <= self.iteration_threshold: # 前期寻优阶段。
+      mutation_p = self.mutation_m1
+    else: # 后期自适应阶段。
+      mutation_p = self.mutation_m2 * ((solution["HSI"] - self.HSI_min) / ((self.HSI_sum / self.population_size) - self.HSI_min))
+    for i in range(0, self.vector_size):
+      if random.random() < mutation_p:
+        # 执行变异操作。
+        node = random.randint(-(self.mutation_to_node00_list_len - 1), self.node_quantity - 1) 
+        # 如果 node 取值为 [-(mutation_to_node00_list_len - 1), ..., 0]，则需要调度到云中心。
+        solution["vector"][i] = 0 if node <= 0 else node
+        # 由于云中心的计算能力占比较大，因此调度去云中心的概率应该较高。
+        # 在这里，我们选择使用调整 random.randint 取值，来增大其调度去云中心的概率。
+        self.HSI_sum -= solution["HSI"] # 更新 HSI_sum。
+        self.get_HSI(solution) # 更新变异后的 HSI。
+        self.HSI_sum += solution["HSI"]
+        self.get_HSI_min(solution) # 更新 HSI_min。
 
   def link(self):
     adjacent_probability = self.neighbor_num / (self.population_size - 1)
@@ -195,10 +245,18 @@ class BBO:
           self.link_matrix[i][j] = 0
           self.link_matrix[j][i] = 0
 
+  def get_HSI_min(self, solution):
+    if solution["HSI"] < self.HSI_min: # 更新 HSI_min。
+      self.HSI_min = solution["HSI"]
+      self.HSI_min_ids.clear()
+      self.HSI_min_ids.append(solution["id"])
+    elif solution["HSI"] == self.HSI_min:
+      self.HSI_min_ids.append(solution["id"])
 
 if __name__ == "__main__":
   # 读取数据。
   cwd_path = os.getcwd()
-  with open(os.path.join(cwd_path, "./BBO/mock.json"), "r") as mock:
+  with open(os.path.join(cwd_path, "./algorithm/mock.json"), "r") as mock:
     mock_json = json.load(mock)
-  BBO(mock_json)
+  solution = BBO(mock_json)
+  print(solution.get_solution())
