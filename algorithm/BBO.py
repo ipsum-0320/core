@@ -89,6 +89,6 @@ class BBO:
 
 if __name__ == "__main__":
   # ackley_generator 用于生成 Ackley，但是其需要一个参数用于指定维度。
-  solution = BBO(ackley_generator, 10, ackley_max, ackley_min, 50, -5, 5, 10000)
+  solution = BBO(ackley_generator, 6, ackley_max, ackley_min, 50, -5, 5, 10000)
   solution.get_best_solution()
 

@@ -7,7 +7,6 @@ import math
 
 ackley_max = 20
 ackley_min = 0
-
 def ackley_generator(vector_size):
   def ackley(X):
     # 基准测试函数 Ackley。
@@ -23,8 +22,8 @@ def ackley_generator(vector_size):
         x = X[i]
         sum1 = sum1 + x ** 2
         sum2 = sum2 + math.cos(c * x)
-    term1 = -a * math.exp(-b * math.sqrt(sum1 / 2))
-    term2 = -math.exp(sum2 / 2)
+    term1 = -a * math.exp(-b * math.sqrt(sum1 / vector_size))
+    term2 = -math.exp(sum2 / vector_size)
     y = term1 + term2 + a + math.exp(1)
     return y 
   return ackley
