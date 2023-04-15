@@ -240,6 +240,9 @@ class BBO_Pro:
       mutation_p = self.mutation_m1
     else: # 后期自适应阶段。
       mutation_p = self.mutation_m2 * ((solution["HSI"] - self.HSI_min) / ((self.HSI_sum / self.solution_size) - self.HSI_min))
+    copy_solution = None
+    if solution["id"] in self.HSI_min_ids and len(self.HSI_min_ids) == 1: # 是最优解且最优解只有一个。
+      copy_solution = solution.copy()
     for i in range(0, self.vector_size):
       if random.random() < mutation_p:
         # 执行变异操作。
@@ -248,10 +251,21 @@ class BBO_Pro:
         solution["vector"][i] = 0 if node <= 0 else node
         # 由于云中心的计算能力占比较大，因此调度去云中心的概率应该较高。
         # 在这里，我们选择使用调整 random.randint 取值，来增大其调度去云中心的概率。
-    self.HSI_sum -= solution["HSI"] # 更新 HSI_sum。
-    self.get_HSI(solution) # 更新变异后的 HSI。
-    self.HSI_sum += solution["HSI"]
-    self.get_HSI_min(solution) # 更新 HSI_min。
+    if solution["id"] in self.HSI_min_ids and len(self.HSI_min_ids) == 1:
+      # 防止变异破坏最优解。
+      self.get_HSI(solution)
+      if solution["HSI"] < copy_solution["HSI"]: # 得到优化解。
+        self.HSI_sum -= copy_solution["HSI"] # 更新 HSI_sum。
+        self.HSI_sum += solution["HSI"]
+        self.get_HSI_min(solution) # 更新 HSI_min。
+      else: # 得到劣化解。
+        solution["HSI"] = copy_solution["HSI"]
+        solution["vector"] = copy_solution["vector"]      
+    else:
+      self.HSI_sum -= solution["HSI"] # 更新 HSI_sum。
+      self.get_HSI(solution) # 更新变异后的 HSI。
+      self.HSI_sum += solution["HSI"]
+      self.get_HSI_min(solution) # 更新 HSI_min。
 
   def link(self):
     adjacent_probability = self.neighbor_num / (self.solution_size - 1)
@@ -276,7 +290,7 @@ class BBO_Pro:
 if __name__ == "__main__":
   # 读取数据。
   cwd_path = os.getcwd()
-  with open(os.path.join(cwd_path, "./algorithm/mock.json"), "r") as mock:
+  with open(os.path.join(cwd_path, "./application/mock.json"), "r") as mock:
     mock_json = json.load(mock)
   solution = BBO_Pro(mock_json)
   print(solution.get_solution())

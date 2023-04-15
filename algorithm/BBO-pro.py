@@ -7,6 +7,9 @@ from utils import roulette
 import random
 import numpy as np
 import math
+from tqdm import tqdm
+import os
+
 
 
 class BBO_Pro:
@@ -36,6 +39,7 @@ class BBO_Pro:
     self.solutions = [] # 解向量。
     self.solution_id_map = {} # 用于完成 id 和 solution 的映射。
     self.link_matrix = np.zeros((self.solution_size, self.solution_size), dtype = int) # 拓扑结构采用随机结构，邻接矩阵[i][j] == 1 表示相邻，[i][j] == 0 表示不相邻，特别的定义 [i][i] == 0。
+    self.data = [] # 存储迭代过程中的最优值。
 
     # 初始化。
     for i in range(0, self.solution_size):
@@ -54,9 +58,9 @@ class BBO_Pro:
 
     self.link() # 形成各个栖息地之间的链接关系。
     
+    self.solutions.sort(key=lambda el: el["HSI"], reverse=True)
     # 迭代。
-    for i in range(0, self.iterations):
-      self.solutions.sort(key=lambda el: el["HSI"], reverse=True) 
+    for i in tqdm(range(0, self.iterations)):
       # 为了方便迁移率的计算，按照 HSI 的值降序排序，越靠前，解越差。
       for solution in self.solutions:
         # 计算迁移率。
@@ -64,13 +68,17 @@ class BBO_Pro:
       for solution in self.solutions:
         self.move(solution, i)
         self.mutation(solution, i)
+      self.solutions.sort(key=lambda el: el["HSI"], reverse=True)
+      self.data.append([i, self.solutions[self.solution_size - 1]["HSI"]])
     
+    cwd_path = os.getcwd()
+    np.savetxt(os.path.join(cwd_path, "./algorithm/data/BBO-Pro.txt"), np.array(self.data), header="iteration HSI",  fmt="%d %f")
     self.solutions.sort(key=lambda el: el["HSI"])
   
   def get_best_solution(self):
     best_solution = self.solutions[0]["vector"]
     best_HSI = self.solutions[0]["HSI"]
-    print(best_solution, best_HSI)
+    return [best_solution, best_HSI]
   
   def get_HSI_min(self, solution):
     if solution["HSI"] < self.HSI_min: # 更新 HSI_min。
@@ -167,17 +175,34 @@ class BBO_Pro:
       mutation_p = self.mutation_m1
     else: # 后期自适应阶段。
       mutation_p = self.mutation_m2 * ((solution["HSI"] - self.HSI_min) / ((self.HSI_sum / self.solution_size) - self.HSI_min))
+    copy_solution = None
+    if solution["id"] in self.HSI_min_ids and len(self.HSI_min_ids) == 1: # 是最优解且最优解只有一个。
+      copy_solution = solution.copy()
     for i in range(0, self.vector_size):
       if random.random() < mutation_p:
         # 执行变异操作。
         solution["vector"][i] = random.randint(self.domain_left, self.domain_left)
-    self.HSI_sum -= solution["HSI"] # 更新 HSI_sum。
-    self.get_HSI(solution) # 更新变异后的 HSI。
-    self.HSI_sum += solution["HSI"]
-    self.get_HSI_min(solution) # 更新 HSI_min。
+    if solution["id"] in self.HSI_min_ids and len(self.HSI_min_ids) == 1:
+      # 防止变异破坏最优解。
+      self.get_HSI(solution)
+      if solution["HSI"] < copy_solution["HSI"]: # 得到优化解。
+        self.HSI_sum -= copy_solution["HSI"] # 更新 HSI_sum。
+        self.HSI_sum += solution["HSI"]
+        self.get_HSI_min(solution) # 更新 HSI_min。
+      else: # 得到劣化解。
+        solution["HSI"] = copy_solution["HSI"]
+        solution["vector"] = copy_solution["vector"] 
+    else:
+      self.HSI_sum -= solution["HSI"] # 更新 HSI_sum。
+      self.get_HSI(solution) # 更新变异后的 HSI。
+      self.HSI_sum += solution["HSI"]
+      self.get_HSI_min(solution) # 更新 HSI_min。
 
 
 if __name__ == "__main__":
   # ackley_generator 用于生成 Ackley，但是其需要一个参数用于指定维度。
-  solution = BBO_Pro(ackley_generator, 6, ackley_max, ackley_min, 50, -5, 5, 10000)
-  solution.get_best_solution()
+  print() # 空行。
+  solution = BBO_Pro(ackley_generator, 3, ackley_max, ackley_min, 50, -5, 5, 10)
+  print() # 空行。
+  [best_solution, best_HSI] = solution.get_best_solution()
+  print("best_solution: ", best_solution, "\n", "best_HSI: ", best_HSI)

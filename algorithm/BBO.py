@@ -4,6 +4,9 @@ sys.dont_write_bytecode = True
 from benchmark import ackley_generator, ackley_max, ackley_min
 from utils import roulette
 import random
+from tqdm import tqdm
+import numpy as np
+import os
 
 class BBO:
   def __init__(self, target_fn_generator, vector_size, target_fn_max, target_fn_min, solution_size, domain_left, domain_right, iterations):
@@ -24,6 +27,7 @@ class BBO:
     # 定义变量。
     self.solutions = [] # 解向量。
     self.solution_id_map = {} # 用于完成 id 和 solution 的映射。
+    self.data = [] # 存储迭代过程中的最优值。
 
     # 初始化。
     for i in range(0, self.solution_size):
@@ -39,19 +43,23 @@ class BBO:
       self.get_HSI(solution)
     
     # 迭代。
-    for _ in range(0, self.iterations):
+    for i in tqdm(range(0, self.iterations)):
       for solution in self.solutions:
         self.get_move(solution)
       for solution in self.solutions:
         self.move(solution)
         self.mutation(solution)
+      self.solutions.sort(key=lambda el: el["HSI"])
+      self.data.append([i, self.solutions[0]["HSI"]])
+
+    cwd_path = os.getcwd()
+    np.savetxt(os.path.join(cwd_path, "./algorithm/data/BBO.txt"), np.array(self.data), header="iteration HSI",  fmt="%d %f")
     
-    self.solutions.sort(key=lambda el: el["HSI"])
   
   def get_best_solution(self):
     best_solution = self.solutions[0]["vector"]
     best_HSI = self.solutions[0]["HSI"]
-    print(best_solution, best_HSI)
+    return [best_solution, best_HSI]
 
 
   def get_move(self, solution):
@@ -82,13 +90,20 @@ class BBO:
 
   def mutation(self, solution):
     # 变异。
+    copy_solution = solution.copy() # 精英保存策略。
     for i in range(0, self.vector_size):
       if random.random() < self.mutation_p:
         solution["vector"][i] = random.randint(self.domain_left, self.domain_right)
     self.get_HSI(solution)
+    if solution["HSI"] > copy_solution["HSI"]: # 得到劣化解。
+      solution["HSI"] = copy_solution["HSI"]
+      solution["vector"] = copy_solution["vector"]    
 
 if __name__ == "__main__":
   # ackley_generator 用于生成 Ackley，但是其需要一个参数用于指定维度。
-  solution = BBO(ackley_generator, 6, ackley_max, ackley_min, 50, -5, 5, 10000)
-  solution.get_best_solution()
+  print() # 空行。
+  solution = BBO(ackley_generator, 3, ackley_max, ackley_min, 50, -5, 5, 10)
+  print() # 空行。
+  [best_solution, best_HSI] = solution.get_best_solution()
+  print("best_solution: ", best_solution, "\n", "best_HSI: ", best_HSI)
 
