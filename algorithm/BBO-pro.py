@@ -31,71 +31,74 @@ class BBO_Pro:
     self.iterations = iterations # 迭代次数。
     self.domain_left = domain_left # 定义域极左。
     self.domain_right = domain_right # 定义域极右。
-    self.HSI_sum = 0 # 群体 HSI 的均值。
-    self.HSI_min = sys.maxsize # 群体中 HSI 的最小值。 
-    self.HSI_min_ids = [] # 群体中具有最小 HSI 值的 id（可能有多个）。
+    self.ackley_value_sum = 0 # 群体 ackley_value 的均值。
+    self.ackley_value_min = sys.maxsize # 群体中 ackley_value 的最小值。 
+    self.ackley_value_min_ids = [] # 群体中具有最小 ackley_value 值的 id（可能有多个）。
 
     # 定义变量。
     self.solutions = [] # 解向量。
     self.solution_id_map = {} # 用于完成 id 和 solution 的映射。
     self.link_matrix = np.zeros((self.solution_size, self.solution_size), dtype = int) # 拓扑结构采用随机结构，邻接矩阵[i][j] == 1 表示相邻，[i][j] == 0 表示不相邻，特别的定义 [i][i] == 0。
-    self.data = [] # 存储迭代过程中的最优值。
+    self.data_min = [] # 存储迭代过程中的最优值。
+    self.data_avg = [] # 存储迭代过程中的平均值。
 
     # 初始化。
     for i in range(0, self.solution_size):
       solution = {
         "id": i, # 给解进行编号。
-        "HSI": None,
+        "ackley_value": None,
         "vector": [random.randint(self.domain_left, self.domain_right) for _ in range(0, self.vector_size)], # 设置定义域。
         "move_in": None,
         "move_out": None,
       }
       self.solutions.append(solution)
       self.solution_id_map[i] = solution
-      self.get_HSI(solution)
-      self.HSI_sum += solution["HSI"]
-      self.get_HSI_min(solution)
+      self.get_ackley_value(solution)
+      self.ackley_value_sum += solution["ackley_value"]
+      self.get_ackley_value_min(solution)
 
     self.link() # 形成各个栖息地之间的链接关系。
     
-    self.solutions.sort(key=lambda el: el["HSI"], reverse=True)
+    self.solutions.sort(key=lambda el: el["ackley_value"], reverse=True)
     # 迭代。
     for i in tqdm(range(0, self.iterations)):
-      # 为了方便迁移率的计算，按照 HSI 的值降序排序，越靠前，解越差。
+      # 为了方便迁移率的计算，按照 ackley_value 的值降序排序，越靠前，解越差。
       for solution in self.solutions:
         # 计算迁移率。
         self.get_move(solution)
       for solution in self.solutions:
         self.move(solution, i)
         self.mutation(solution, i)
-      self.solutions.sort(key=lambda el: el["HSI"], reverse=True)
-      self.data.append([i, self.solutions[self.solution_size - 1]["HSI"]])
+      self.solutions.sort(key=lambda el: el["ackley_value"], reverse=True)
+      self.data_min.append([i + 1, self.solutions[self.solution_size - 1]["ackley_value"]])
+      self.data_avg.append([i + 1, self.ackley_value_sum / self.solution_size])
     
     cwd_path = os.getcwd()
-    np.savetxt(os.path.join(cwd_path, "./algorithm/data/BBO-Pro.txt"), np.array(self.data), header="iteration HSI",  fmt="%d %f")
-    self.solutions.sort(key=lambda el: el["HSI"])
+    np.savetxt(os.path.join(cwd_path, "./algorithm/data/BBO-Pro_min.txt"), np.array(self.data_min), header="Iteration Ackley-Value",  fmt="%d %f")
+    np.savetxt(os.path.join(cwd_path, "./algorithm/data/BBO-Pro_avg.txt"), np.array(self.data_avg), header="Iteration Ackley-Value",  fmt="%d %f")
+    self.solutions.sort(key=lambda el: el["ackley_value"])
   
   def get_best_solution(self):
     best_solution = self.solutions[0]["vector"]
-    best_HSI = self.solutions[0]["HSI"]
-    return [best_solution, best_HSI]
+    best_ackley_value = self.solutions[0]["ackley_value"]
+    return [best_solution, best_ackley_value]
   
-  def get_HSI_min(self, solution):
-    if solution["HSI"] < self.HSI_min: # 更新 HSI_min。
-      self.HSI_min = solution["HSI"]
-      self.HSI_min_ids.clear()
-      self.HSI_min_ids.append(solution["id"])
-    elif solution["HSI"] == self.HSI_min:
-      self.HSI_min_ids.append(solution["id"])
+  def get_ackley_value_min(self, solution):
+    if solution["ackley_value"] < self.ackley_value_min: # 更新 ackley_value_min。
+      self.ackley_value_min = solution["ackley_value"]
+      self.ackley_value_min_ids.clear()
+      self.ackley_value_min_ids.append(solution["id"])
+    elif solution["ackley_value"] == self.ackley_value_min:
+      self.ackley_value_min_ids.append(solution["id"])
   
   def get_move(self, solution):
     # 计算迁入迁出率。
-    solution["move_in"] = (self.move_in_max / 2) * (math.cos(((self.target_fn_max - solution["HSI"]) * math.pi) / (self.target_fn_max - self.target_fn_min)) + 1)
-    solution["move_out"] = (self.move_out_max / 2) * (-math.cos(((self.target_fn_max - solution["HSI"]) * math.pi) / (self.target_fn_max - self.target_fn_min)) + 1)
+    solution["move_in"] = (self.move_in_max / 2) * (math.cos(((self.target_fn_max - solution["ackley_value"]) * math.pi) / (self.target_fn_max - self.target_fn_min)) + 1)
+    solution["move_out"] = (self.move_out_max / 2) * (-math.cos(((self.target_fn_max - solution["ackley_value"]) * math.pi) / (self.target_fn_max - self.target_fn_min)) + 1)
   
-  def get_HSI(self, solution):
+  def get_ackley_value(self, solution):
     # 计算适应度。
-    solution["HSI"] = self.target_fn(solution["vector"])
+    solution["ackley_value"] = self.target_fn(solution["vector"])
 
   def link(self):
     adjacent_probability = self.neighbor_num / (self.solution_size - 1)
@@ -152,19 +155,19 @@ class BBO_Pro:
             solution["vector"][i] = selected_adjacent_solution["vector"][i]
             continue
           selected_non_adjacent_solution = self.solution_id_map[non_adjacent_move_out_id_list[roulette(non_adjacent_move_out_list)]]
-          if selected_non_adjacent_solution["HSI"] < selected_adjacent_solution["HSI"]:
+          if selected_non_adjacent_solution["ackley_value"] < selected_adjacent_solution["ackley_value"]:
             # 不相邻栖息地迁入。
             solution["vector"][i] = selected_non_adjacent_solution["vector"][i]
           else:
             # 相邻栖息地迁入。
             solution["vector"][i] = selected_adjacent_solution["vector"][i]
-    self.get_HSI(solution) # 计算新栖息地的 HSI
-    if solution["HSI"] < copy_solution["HSI"]: # 得到优化解。
-      self.HSI_sum -= copy_solution["HSI"] # 更新 HSI_sum。
-      self.HSI_sum += solution["HSI"]
-      self.get_HSI_min(solution) # 更新 HSI_min。
+    self.get_ackley_value(solution) # 计算新栖息地的 ackley_value
+    if solution["ackley_value"] < copy_solution["ackley_value"]: # 得到优化解。
+      self.ackley_value_sum -= copy_solution["ackley_value"] # 更新 ackley_value_sum。
+      self.ackley_value_sum += solution["ackley_value"]
+      self.get_ackley_value_min(solution) # 更新 ackley_value_min。
     else: # 得到劣化解。
-      solution["HSI"] = copy_solution["HSI"]
+      solution["ackley_value"] = copy_solution["ackley_value"]
       solution["vector"] = copy_solution["vector"]
       # 以上为精英保存策略，防止劣化解。
 
@@ -174,35 +177,36 @@ class BBO_Pro:
     if current_iteration <= self.iteration_threshold: # 前期寻优阶段。
       mutation_p = self.mutation_m1
     else: # 后期自适应阶段。
-      mutation_p = self.mutation_m2 * ((solution["HSI"] - self.HSI_min) / ((self.HSI_sum / self.solution_size) - self.HSI_min))
+      mutation_p = self.mutation_m2 * ((solution["ackley_value"] - self.ackley_value_min) / ((self.ackley_value_sum / self.solution_size) - self.ackley_value_min))
     copy_solution = None
-    if solution["id"] in self.HSI_min_ids and len(self.HSI_min_ids) == 1: # 是最优解且最优解只有一个。
+    if solution["id"] in self.ackley_value_min_ids and len(self.ackley_value_min_ids) == 1: # 是最优解且最优解只有一个。
       copy_solution = solution.copy()
     for i in range(0, self.vector_size):
       if random.random() < mutation_p:
         # 执行变异操作。
         solution["vector"][i] = random.randint(self.domain_left, self.domain_left)
-    if solution["id"] in self.HSI_min_ids and len(self.HSI_min_ids) == 1:
+    if solution["id"] in self.ackley_value_min_ids and len(self.ackley_value_min_ids) == 1:
       # 防止变异破坏最优解。
-      self.get_HSI(solution)
-      if solution["HSI"] < copy_solution["HSI"]: # 得到优化解。
-        self.HSI_sum -= copy_solution["HSI"] # 更新 HSI_sum。
-        self.HSI_sum += solution["HSI"]
-        self.get_HSI_min(solution) # 更新 HSI_min。
+      self.get_ackley_value(solution)
+      if solution["ackley_value"] < copy_solution["ackley_value"]: # 得到优化解。
+        self.ackley_value_sum -= copy_solution["ackley_value"] # 更新 ackley_value_sum。
+        self.ackley_value_sum += solution["ackley_value"]
+        self.get_ackley_value_min(solution) # 更新 ackley_value_min。
       else: # 得到劣化解。
-        solution["HSI"] = copy_solution["HSI"]
+        solution["ackley_value"] = copy_solution["ackley_value"]
         solution["vector"] = copy_solution["vector"] 
     else:
-      self.HSI_sum -= solution["HSI"] # 更新 HSI_sum。
-      self.get_HSI(solution) # 更新变异后的 HSI。
-      self.HSI_sum += solution["HSI"]
-      self.get_HSI_min(solution) # 更新 HSI_min。
+      self.ackley_value_sum -= solution["ackley_value"] # 更新 ackley_value_sum。
+      self.get_ackley_value(solution) # 更新变异后的 ackley_value。
+      self.ackley_value_sum += solution["ackley_value"]
+      self.get_ackley_value_min(solution) # 更新 ackley_value_min。
 
 
 if __name__ == "__main__":
   # ackley_generator 用于生成 Ackley，但是其需要一个参数用于指定维度。
   print() # 空行。
-  solution = BBO_Pro(ackley_generator, 3, ackley_max, ackley_min, 50, -5, 5, 10)
+  solution = BBO_Pro(ackley_generator, 3, ackley_max, ackley_min, 50, -5, 5, 20)
   print() # 空行。
-  [best_solution, best_HSI] = solution.get_best_solution()
-  print("best_solution: ", best_solution, "\n", "best_HSI: ", best_HSI)
+  [best_solution, best_ackley_value] = solution.get_best_solution()
+  print("best_solution: ", best_solution)
+  print("best_ackley_value: ", best_ackley_value)

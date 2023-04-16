@@ -23,24 +23,27 @@ class BBO:
     self.iterations = iterations # 迭代次数。
     self.domain_left = domain_left # 定义域极左。
     self.domain_right = domain_right # 定义域极右。
+    self.ackley_value_sum = 0
 
     # 定义变量。
     self.solutions = [] # 解向量。
     self.solution_id_map = {} # 用于完成 id 和 solution 的映射。
-    self.data = [] # 存储迭代过程中的最优值。
+    self.data_min = [] # 存储迭代过程中的最优值。
+    self.data_avg = [] # 存储迭代过程中的平均值。
 
     # 初始化。
     for i in range(0, self.solution_size):
       solution = {
         "id": i, # 给解进行编号。
-        "HSI": None,
+        "ackley_value": None,
         "vector": [random.randint(self.domain_left, self.domain_right) for _ in range(0, self.vector_size)], # 设置定义域。
         "move_in": None,
         "move_out": None,
       }
       self.solutions.append(solution)
       self.solution_id_map[i] = solution
-      self.get_HSI(solution)
+      self.get_ackley_value(solution)
+      self.ackley_value_sum += solution["ackley_value"]
     
     # 迭代。
     for i in tqdm(range(0, self.iterations)):
@@ -49,26 +52,28 @@ class BBO:
       for solution in self.solutions:
         self.move(solution)
         self.mutation(solution)
-      self.solutions.sort(key=lambda el: el["HSI"])
-      self.data.append([i, self.solutions[0]["HSI"]])
+      self.solutions.sort(key=lambda el: el["ackley_value"])
+      self.data_min.append([i + 1, self.solutions[0]["ackley_value"]])
+      self.data_avg.append([i + 1, self.ackley_value_sum / self.solution_size])
 
     cwd_path = os.getcwd()
-    np.savetxt(os.path.join(cwd_path, "./algorithm/data/BBO.txt"), np.array(self.data), header="iteration HSI",  fmt="%d %f")
+    np.savetxt(os.path.join(cwd_path, "./algorithm/data/BBO_min.txt"), np.array(self.data_min), header="Iteration Ackley-Value",  fmt="%d %f")
+    np.savetxt(os.path.join(cwd_path, "./algorithm/data/BBO_avg.txt"), np.array(self.data_avg), header="Iteration Ackley-Value",  fmt="%d %f")
     
   
   def get_best_solution(self):
     best_solution = self.solutions[0]["vector"]
-    best_HSI = self.solutions[0]["HSI"]
-    return [best_solution, best_HSI]
+    best_ackley_value = self.solutions[0]["ackley_value"]
+    return [best_solution, best_ackley_value]
 
 
   def get_move(self, solution):
-    solution["move_in"] = self.move_in_max * ((self.target_fn_max - solution["HSI"]) / (self.target_fn_max - self.target_fn_min))
-    solution["move_out"] = self.move_out_max * ((solution["HSI"] - self.target_fn_min) / (self.target_fn_max - self.target_fn_min))
+    solution["move_in"] = self.move_in_max * ((self.target_fn_max - solution["ackley_value"]) / (self.target_fn_max - self.target_fn_min))
+    solution["move_out"] = self.move_out_max * ((solution["ackley_value"] - self.target_fn_min) / (self.target_fn_max - self.target_fn_min))
   
-  def get_HSI(self, solution):
+  def get_ackley_value(self, solution):
     # 计算适应度。
-    solution["HSI"] = self.target_fn(solution["vector"])
+    solution["ackley_value"] = self.target_fn(solution["vector"])
 
   def move(self, solution):
     # 迁移。
@@ -83,10 +88,13 @@ class BBO:
             other_id_list.append(s["id"])
         target_solution = self.solution_id_map[other_id_list[roulette(other_move_out_list)]]
         solution["vector"][i] = target_solution["vector"][i]
-    self.get_HSI(solution)
-    if solution["HSI"] > copy_solution["HSI"]: # 得到劣化解。
-      solution["HSI"] = copy_solution["HSI"]
+    self.get_ackley_value(solution)
+    if solution["ackley_value"] > copy_solution["ackley_value"]: # 得到劣化解。
+      solution["ackley_value"] = copy_solution["ackley_value"]
       solution["vector"] = copy_solution["vector"]
+    else:
+      self.ackley_value_sum -= copy_solution["ackley_value"]
+      self.ackley_value_sum += solution["ackley_value"]
 
   def mutation(self, solution):
     # 变异。
@@ -94,16 +102,20 @@ class BBO:
     for i in range(0, self.vector_size):
       if random.random() < self.mutation_p:
         solution["vector"][i] = random.randint(self.domain_left, self.domain_right)
-    self.get_HSI(solution)
-    if solution["HSI"] > copy_solution["HSI"]: # 得到劣化解。
-      solution["HSI"] = copy_solution["HSI"]
-      solution["vector"] = copy_solution["vector"]    
+    self.get_ackley_value(solution)
+    if solution["ackley_value"] > copy_solution["ackley_value"]: # 得到劣化解。
+      solution["ackley_value"] = copy_solution["ackley_value"]
+      solution["vector"] = copy_solution["vector"]
+    else:
+      self.ackley_value_sum -= copy_solution["ackley_value"]
+      self.ackley_value_sum += solution["ackley_value"] 
 
 if __name__ == "__main__":
   # ackley_generator 用于生成 Ackley，但是其需要一个参数用于指定维度。
   print() # 空行。
-  solution = BBO(ackley_generator, 3, ackley_max, ackley_min, 50, -5, 5, 10)
+  solution = BBO(ackley_generator, 3, ackley_max, ackley_min, 50, -5, 5, 20)
   print() # 空行。
-  [best_solution, best_HSI] = solution.get_best_solution()
-  print("best_solution: ", best_solution, "\n", "best_HSI: ", best_HSI)
+  [best_solution, best_ackley_value] = solution.get_best_solution()
+  print("best_solution: ", best_solution)
+  print("best_ackley_value: ", best_ackley_value)
 
