@@ -11,7 +11,6 @@ install: requirements.txt
 depend: requirements.txt
 	$(PIP) freeze > $^
 
-
 BBO-Pro:
 	$(PYTHON) algorithm/BBO-Pro.py
 

@@ -31,7 +31,7 @@ class BBO_Pro:
     self.iterations = iterations # 迭代次数。
     self.domain_left = domain_left # 定义域极左。
     self.domain_right = domain_right # 定义域极右。
-    self.ackley_value_sum = 0 # 群体 ackley_value 的均值。
+    self.ackley_value_sum = 0 # 种群中所有解对应的 ackley value 的和值。
     self.ackley_value_min = sys.maxsize # 群体中 ackley_value 的最小值。 
     self.ackley_value_min_ids = [] # 群体中具有最小 ackley_value 值的 id（可能有多个）。
 
@@ -97,7 +97,6 @@ class BBO_Pro:
     solution["move_out"] = (self.move_out_max / 2) * (-math.cos(((self.target_fn_max - solution["ackley_value"]) * math.pi) / (self.target_fn_max - self.target_fn_min)) + 1)
   
   def get_ackley_value(self, solution):
-    # 计算适应度。
     solution["ackley_value"] = self.target_fn(solution["vector"])
 
   def link(self):
@@ -205,7 +204,7 @@ class BBO_Pro:
 if __name__ == "__main__":
   # ackley_generator 用于生成 Ackley，但是其需要一个参数用于指定维度。
   print() # 空行。
-  solution = BBO_Pro(ackley_generator, 3, ackley_max, ackley_min, 50, -5, 5, 20)
+  solution = BBO_Pro(ackley_generator, 15, ackley_max, ackley_min, 20, -10, 10, 50)
   print() # 空行。
   [best_solution, best_ackley_value] = solution.get_best_solution()
   print("best_solution: ", best_solution)
