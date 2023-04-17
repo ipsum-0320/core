@@ -19,13 +19,13 @@ if __name__ == "__main__":
 
   fig, (ax_min, ax_avg) = plt.subplots(1, 2)
   
-  ax_min.plot(BBO_Pro_min[0], BBO_Pro_min[1], label="BBO-Pro")
-  ax_min.plot(BBO_min[0], BBO_min[1], label="BBO")
-  ax_min.plot(GA_min[0], GA_min[1], label="GA")
+  ax_min.plot(BBO_Pro_min[0], BBO_Pro_min[1], label="BBO-Pro_min")
+  ax_min.plot(BBO_min[0], BBO_min[1], label="BBO_min")
+  ax_min.plot(GA_min[0], GA_min[1], label="GA_min")
 
-  ax_avg.plot(BBO_Pro_avg[0], BBO_Pro_avg[1], label="BBO-Pro")
-  ax_avg.plot(BBO_avg[0], BBO_avg[1], label="BBO")
-  ax_avg.plot(GA_avg[0], GA_avg[1], label="GA")
+  ax_avg.plot(BBO_Pro_avg[0], BBO_Pro_avg[1], label="BBO-Pro_avg")
+  ax_avg.plot(BBO_avg[0], BBO_avg[1], label="BBO_avg")
+  ax_avg.plot(GA_avg[0], GA_avg[1], label="GA_avg")
 
 
   ax_min.xaxis.set_major_locator(plt.MaxNLocator(integer=True)) # 显示整数刻度。

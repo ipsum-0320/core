@@ -189,8 +189,13 @@ class GA:
 
 if __name__ == "__main__":
   # ackley_generator 用于生成 Ackley，但是其需要一个参数用于指定维度。
+  vector_size = int(sys.argv[1])
+  solution_size = int(sys.argv[2])
+  domain_left = int(sys.argv[3])
+  domain_right = int(sys.argv[4])
+  iterations = int(sys.argv[5])
   print() # 空行。
-  solution = GA(ackley_generator, 15, ackley_max, ackley_min, 20, -10, 10, 50)
+  solution = GA(ackley_generator, vector_size, ackley_max, ackley_min, solution_size, domain_left, domain_right, iterations)
   print() # 空行。
   [best_solution, best_ackley_value] = solution.get_best_solution()
   print("best_solution: ", best_solution)
