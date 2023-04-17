@@ -10,8 +10,6 @@ import math
 from tqdm import tqdm
 import os
 
-
-
 class BBO_Pro:
   def __init__(self, target_fn_generator, vector_size, target_fn_max, target_fn_min, solution_size, domain_left, domain_right, iterations):
     # 定义参数。
@@ -70,7 +68,7 @@ class BBO_Pro:
         self.move(solution, i)
         self.mutation(solution, i)
       self.solutions.sort(key=lambda el: el["ackley_value"], reverse=True)
-      self.data_min.append([i + 1, self.solutions[self.solution_size - 1]["ackley_value"]])
+      self.data_min.append([i + 1, self.ackley_value_min])
       self.data_avg.append([i + 1, self.ackley_value_sum / self.solution_size])
     
     cwd_path = os.getcwd()
