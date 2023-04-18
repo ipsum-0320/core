@@ -79,7 +79,20 @@ class GA:
         el_bin = symbol_bin + el_bin # 最终的补码。
       else: # 负数补码。
         symbol_bin = "1" # 负数符号位。
-        el_bin = bin(el & int("1" * self.bin_len, 2))[2:].zfill(self.bin_len)
+        el_bin_part = bin(abs(el))[2:].zfill(self.bin_len) # 将十进制转化为相应长度的二进制字符串。
+        el_bin_part = "".join("1" if c == "0" else "0" for c in el_bin_part) # 取得反码。
+        key_index = len(el_bin_part) - 1
+        carry = 1
+        for _ in range(0, len(el_bin_part)):
+          current_bit = int(el_bin_part[key_index]) + carry
+          carry = 0
+          if current_bit == 2:
+            carry = 1
+            el_bin = "0" + el_bin
+          else:
+            el_bin = el_bin_part[:key_index] + "1" + el_bin
+            break
+          key_index = key_index - 1
         el_bin = symbol_bin + el_bin # 最终的补码。
       vector_bin += el_bin # 串行编码。
     return vector_bin
