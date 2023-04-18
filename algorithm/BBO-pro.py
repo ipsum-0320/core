@@ -174,6 +174,7 @@ class BBO_Pro:
     if current_iteration <= self.iteration_threshold: # 前期寻优阶段。
       mutation_p = self.mutation_m1
     else: # 后期自适应阶段。
+      if (self.ackley_value_sum / self.solution_size) - self.ackley_value_min == 0: return
       mutation_p = self.mutation_m2 * ((solution["ackley_value"] - self.ackley_value_min) / ((self.ackley_value_sum / self.solution_size) - self.ackley_value_min))
     copy_solution = None
     if solution["id"] in self.ackley_value_min_ids and len(self.ackley_value_min_ids) == 1: # 是最优解且最优解只有一个。
