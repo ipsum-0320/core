@@ -23,13 +23,11 @@ class BBO:
     self.iterations = iterations # 迭代次数。
     self.domain_left = domain_left # 定义域极左。
     self.domain_right = domain_right # 定义域极右。
-    self.ackley_value_sum = 0 # 种群中所有解对应的 ackley value 的和值。
 
     # 定义变量。
     self.solutions = [] # 解向量。
     self.solution_id_map = {} # 用于完成 id 和 solution 的映射。
     self.data_min = [] # 存储迭代过程中的最优值。
-    self.data_avg = [] # 存储迭代过程中的平均值。
 
     # 初始化。
     for i in range(0, self.solution_size):
@@ -43,7 +41,6 @@ class BBO:
       self.solutions.append(solution)
       self.solution_id_map[i] = solution
       self.get_ackley_value(solution)
-      self.ackley_value_sum += solution["ackley_value"]
     
     # 迭代。
     for i in tqdm(range(0, self.iterations)):
@@ -54,11 +51,9 @@ class BBO:
         self.mutation(solution)
       self.solutions.sort(key=lambda el: el["ackley_value"])
       self.data_min.append([i + 1, self.solutions[0]["ackley_value"]])
-      self.data_avg.append([i + 1, self.ackley_value_sum / self.solution_size])
 
     cwd_path = os.getcwd()
-    np.savetxt(os.path.join(cwd_path, "./algorithm/data/BBO_min.txt"), np.array(self.data_min), header="Iteration Ackley-Value",  fmt="%d %f")
-    np.savetxt(os.path.join(cwd_path, "./algorithm/data/BBO_avg.txt"), np.array(self.data_avg), header="Iteration Ackley-Value",  fmt="%d %f")
+    np.savetxt(os.path.join(cwd_path, "./algorithm/data/BBO.txt"), np.array(self.data_min), header="Iteration Ackley-Value",  fmt="%d %f")
     
   
   def get_best_solution(self):
@@ -90,9 +85,6 @@ class BBO:
     if solution["ackley_value"] > copy_solution["ackley_value"]: # 得到劣化解。
       solution["ackley_value"] = copy_solution["ackley_value"]
       solution["vector"] = copy_solution["vector"]
-    else:
-      self.ackley_value_sum -= copy_solution["ackley_value"]
-      self.ackley_value_sum += solution["ackley_value"]
 
   def mutation(self, solution):
     # 变异。
@@ -104,19 +96,12 @@ class BBO:
     if solution["ackley_value"] > copy_solution["ackley_value"]: # 得到劣化解。
       solution["ackley_value"] = copy_solution["ackley_value"]
       solution["vector"] = copy_solution["vector"]
-    else:
-      self.ackley_value_sum -= copy_solution["ackley_value"]
-      self.ackley_value_sum += solution["ackley_value"] 
 
 if __name__ == "__main__":
   # ackley_generator 用于生成 Ackley，但是其需要一个参数用于指定维度。
   vector_size = int(sys.argv[1])
-  solution_size = int(sys.argv[2])
-  domain_left = int(sys.argv[3])
-  domain_right = int(sys.argv[4])
-  iterations = int(sys.argv[5])
   print() # 空行。
-  solution = BBO(ackley_generator, vector_size, ackley_max, ackley_min, solution_size, domain_left, domain_right, iterations)
+  solution = BBO(ackley_generator, vector_size, ackley_max, ackley_min, 50, -5, 5, 50)
   print() # 空行。
   [best_solution, best_ackley_value] = solution.get_best_solution()
   print("best_solution: ", best_solution)

@@ -22,7 +22,6 @@ class GA:
     self.iterations = iterations # 迭代次数。
     self.domain_left = domain_left # 定义域极左。
     self.domain_right = domain_right # 定义域极右。
-    self.ackley_value_sum = 0 # 种群中所有解对应的 ackley value 的和值。
     self.crossover_p = 0.75 # 父母个体染色体的交叉概率，一般取值范围在 [0.6, 0.9]。
     self.mutation_p = 0.05 # 后代染色体的变异概率，一般取值范围在 [0.01, 0.1]。
     self.bin_len = len(bin(abs(domain_left) if abs(domain_left) >= abs(domain_right) else abs(domain_right))[2:]) # 二进制编码的长度，注意此处不包含符号位。
@@ -32,7 +31,6 @@ class GA:
     self.solutions = [] # 解向量。
     self.solution_id_map = {} # 用于完成 id 和 solution 的映射。
     self.data_min = [] # 存储迭代过程中的最优值。
-    self.data_avg = [] # 存储迭代过程中的平均值。
     self.selected_solutions = [] # 被选中的父母解。
     self.selected_solutions_not_crossovered = {} # 被选中且尚未交叉的父母解。
     self.offspring_solutions = [] # 后代解向量。
@@ -56,13 +54,10 @@ class GA:
       self.solutions = self.solutions + self.offspring_solutions # 合并种群。
       self.solutions.sort(key=lambda el: el["ackley_value"]) # 筛选优质个体。
       self.solutions = self.solutions[:self.solution_size]
-      self.update_ackley_value_sum()
       self.data_min.append([i + 1, self.solutions[0]["ackley_value"]])
-      self.data_avg.append([i + 1, self.ackley_value_sum / self.solution_size])
 
     cwd_path = os.getcwd()
-    np.savetxt(os.path.join(cwd_path, "./algorithm/data/GA_min.txt"), np.array(self.data_min), header="Iteration Ackley-Value",  fmt="%d %f")
-    np.savetxt(os.path.join(cwd_path, "./algorithm/data/GA_avg.txt"), np.array(self.data_avg), header="Iteration Ackley-Value",  fmt="%d %f")
+    np.savetxt(os.path.join(cwd_path, "./algorithm/data/GA.txt"), np.array(self.data_min), header="Iteration Ackley-Value",  fmt="%d %f")
 
   def get_best_solution(self):
     best_solution = self.solutions[0]["vector"]
@@ -72,11 +67,6 @@ class GA:
   def get_ackley_value(self, solution):
     # 计算 ackley value 的取值。
     solution["ackley_value"] = self.target_fn(solution["vector"])
-
-  def update_ackley_value_sum(self):
-    self.ackley_value_sum = 0
-    for solution in self.solutions:
-      self.ackley_value_sum += solution["ackley_value"]
   
   def encode(self, vector):
     # 编码。
@@ -190,12 +180,8 @@ class GA:
 if __name__ == "__main__":
   # ackley_generator 用于生成 Ackley，但是其需要一个参数用于指定维度。
   vector_size = int(sys.argv[1])
-  solution_size = int(sys.argv[2])
-  domain_left = int(sys.argv[3])
-  domain_right = int(sys.argv[4])
-  iterations = int(sys.argv[5])
   print() # 空行。
-  solution = GA(ackley_generator, vector_size, ackley_max, ackley_min, solution_size, domain_left, domain_right, iterations)
+  solution = GA(ackley_generator, vector_size, ackley_max, ackley_min, 50, -5, 5, 50)
   print() # 空行。
   [best_solution, best_ackley_value] = solution.get_best_solution()
   print("best_solution: ", best_solution)

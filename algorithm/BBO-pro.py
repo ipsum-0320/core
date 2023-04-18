@@ -38,7 +38,6 @@ class BBO_Pro:
     self.solution_id_map = {} # 用于完成 id 和 solution 的映射。
     self.link_matrix = np.zeros((self.solution_size, self.solution_size), dtype = int) # 拓扑结构采用随机结构，邻接矩阵[i][j] == 1 表示相邻，[i][j] == 0 表示不相邻，特别的定义 [i][i] == 0。
     self.data_min = [] # 存储迭代过程中的最优值。
-    self.data_avg = [] # 存储迭代过程中的平均值。
 
     # 初始化。
     for i in range(0, self.solution_size):
@@ -69,11 +68,9 @@ class BBO_Pro:
         self.mutation(solution, i)
       self.solutions.sort(key=lambda el: el["ackley_value"], reverse=True)
       self.data_min.append([i + 1, self.ackley_value_min])
-      self.data_avg.append([i + 1, self.ackley_value_sum / self.solution_size])
     
     cwd_path = os.getcwd()
-    np.savetxt(os.path.join(cwd_path, "./algorithm/data/BBO-Pro_min.txt"), np.array(self.data_min), header="Iteration Ackley-Value",  fmt="%d %f")
-    np.savetxt(os.path.join(cwd_path, "./algorithm/data/BBO-Pro_avg.txt"), np.array(self.data_avg), header="Iteration Ackley-Value",  fmt="%d %f")
+    np.savetxt(os.path.join(cwd_path, "./algorithm/data/BBO-Pro.txt"), np.array(self.data_min), header="Iteration Ackley-Value",  fmt="%d %f")
     self.solutions.sort(key=lambda el: el["ackley_value"])
   
   def get_best_solution(self):
@@ -203,12 +200,8 @@ class BBO_Pro:
 if __name__ == "__main__":
   # ackley_generator 用于生成 Ackley，但是其需要一个参数用于指定维度。
   vector_size = int(sys.argv[1])
-  solution_size = int(sys.argv[2])
-  domain_left = int(sys.argv[3])
-  domain_right = int(sys.argv[4])
-  iterations = int(sys.argv[5])
   print() # 空行。
-  solution = BBO_Pro(ackley_generator, vector_size, ackley_max, ackley_min, solution_size, domain_left, domain_right, iterations)
+  solution = BBO_Pro(ackley_generator, vector_size, ackley_max, ackley_min, 50, -5, 5, 50)
   print() # 空行。
   [best_solution, best_ackley_value] = solution.get_best_solution()
   print("best_solution: ", best_solution)

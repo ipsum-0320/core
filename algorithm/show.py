@@ -10,35 +10,22 @@ cwd_path = os.getcwd()
 if __name__ == "__main__":
   # show.py 用于展示不同算法的效果。
 
-  BBO_Pro_min = np.loadtxt(os.path.join(cwd_path, "./algorithm/data/BBO-Pro_min.txt")).T.tolist()
-  BBO_min = np.loadtxt(os.path.join(cwd_path, "./algorithm/data/BBO_min.txt")).T.tolist()
-  BBO_Pro_avg = np.loadtxt(os.path.join(cwd_path, "./algorithm/data/BBO-Pro_avg.txt")).T.tolist()
-  BBO_avg = np.loadtxt(os.path.join(cwd_path, "./algorithm/data/BBO_avg.txt")).T.tolist()
-  GA_min = np.loadtxt(os.path.join(cwd_path, "./algorithm/data/GA_min.txt")).T.tolist()
-  GA_avg = np.loadtxt(os.path.join(cwd_path, "./algorithm/data/GA_avg.txt")).T.tolist()
+  BBO_Pro = np.loadtxt(os.path.join(cwd_path, "./algorithm/data/BBO-Pro.txt")).T.tolist()
+  BBO = np.loadtxt(os.path.join(cwd_path, "./algorithm/data/BBO.txt")).T.tolist()
+  GA = np.loadtxt(os.path.join(cwd_path, "./algorithm/data/GA.txt")).T.tolist()
 
-  fig, (ax_min, ax_avg) = plt.subplots(1, 2)
+
+  fig, ax = plt.subplots()
   
-  ax_min.plot(BBO_Pro_min[0], BBO_Pro_min[1], label="BBO-Pro_min")
-  ax_min.plot(BBO_min[0], BBO_min[1], label="BBO_min")
-  ax_min.plot(GA_min[0], GA_min[1], label="GA_min")
+  ax.plot(BBO_Pro[0], BBO_Pro[1], label="BBO-Pro_min")
+  ax.plot(BBO[0], BBO[1], label="BBO_min")
+  ax.plot(GA[0], GA[1], label="GA_min")
 
-  ax_avg.plot(BBO_Pro_avg[0], BBO_Pro_avg[1], label="BBO-Pro_avg")
-  ax_avg.plot(BBO_avg[0], BBO_avg[1], label="BBO_avg")
-  ax_avg.plot(GA_avg[0], GA_avg[1], label="GA_avg")
+  ax.xaxis.set_major_locator(plt.MaxNLocator(integer=True)) # 显示整数刻度。
 
-
-  ax_min.xaxis.set_major_locator(plt.MaxNLocator(integer=True)) # 显示整数刻度。
-  ax_avg.xaxis.set_major_locator(plt.MaxNLocator(integer=True))
-
-  ax_min.set_title("Performance of Minimum \nAckley Function Value")
-  ax_min.set_xlabel("Iterations")
-  ax_min.set_ylabel("Ackley Function Minimum Value")
-  ax_min.legend()
-
-  ax_avg.set_title("Performance of Average \nAckley Function Value")
-  ax_avg.set_xlabel("Iterations")
-  ax_avg.set_ylabel("Ackley Function Average Ackley Value")
-  ax_avg.legend()
+  ax.set_title("Performance of Minimum \nAckley Function Value")
+  ax.set_xlabel("Iterations")
+  ax.set_ylabel("Ackley Function Minimum Value")
+  ax.legend()
 
   plt.show()
