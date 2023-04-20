@@ -6,9 +6,9 @@ import random
 import os
 import math
 
-
 from typing import TypedDict, List
 import numpy as np
+
 
 class Node:
   nodeName: str
@@ -60,7 +60,7 @@ class BBO_Pro:
         self.info["tasks"].append(task)
     
     # 定义参数。
-    self.iterations = 1000 # 算法的迭代次数。
+    self.iterations = 50 # 算法的迭代次数。
     self.solution_size = 50 # 种群中栖息地的数量，这里指代解的数量。
     self.S_max = 50 # 种群数量的最大值，用于计算迁入迁出率，为了能够同时去到 0 和 1，取 S_max = solution_size - 1。
     self.vector_size = len(self.info["tasks"]) # 解向量的长度。
@@ -158,7 +158,7 @@ class BBO_Pro:
     for i in range(0, len(solution["vector"])):
       vector_el = solution["vector"][i]
       T = T + self.task_calc_metrics[i] / self.calc_abilities[vector_el]
-      E = E + self.task_calc_metrics[i] * self.calc_abilities[vector_el] ** 2
+      E = E + self.task_calc_metrics[i] * (self.calc_abilities[vector_el] ** 2)
       if vector_el == 0:
         T = T + self.task_trans_metrics[i] / self.trans_bandwidth
         E = E + self.e_per_time * self.task_trans_metrics[i] / self.trans_bandwidth

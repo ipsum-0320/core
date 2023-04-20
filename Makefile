@@ -56,3 +56,12 @@ endif
 
 show:
 	$(PYTHON) algorithm/show.py
+
+BBO-Pro-app:
+	$(PYTHON) application/BBO-Pro.py
+
+BBO-app:
+	$(PYTHON) application/BBO.py
+
+GA-app:
+	$(PYTHON) application/GA.py
