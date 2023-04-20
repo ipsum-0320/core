@@ -80,7 +80,7 @@ class BBO_Pro:
     self.iteration_threshold = 550 # 进入后期变异概率自适应阶段的迭代次数阈值。
     self.mutation_m1 = 0.01 # 前期寻优阶段的固定变异概率。
     self.mutation_m2 = 0.0025 # 后期自适应阶段的基础变异概率。
-    self.HSI_sum = 0 # 群体 HSI 的均值。
+    self.HSI_sum = 0 # 群体 HSI 的和值。
     self.HSI_min = sys.maxsize # 群体中 HSI 的最小值。 
     self.HSI_min_ids = [] # 群体中具有最小 HSI 值的 id（可能有多个）。
     self.mutation_to_node00_list_len = 3 # 变异为 node00 的随机数列表长度。
