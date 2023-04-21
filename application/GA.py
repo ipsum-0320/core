@@ -263,4 +263,5 @@ if __name__ == "__main__":
   with open(os.path.join(cwd_path, "./application/mock.json"), "r") as mock:
     mock_json = json.load(mock)
   solution = GA(mock_json)
-  print(solution.get_solution())
+  for s in solution.get_solution():
+    print(s)

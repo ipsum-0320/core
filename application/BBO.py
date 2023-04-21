@@ -6,7 +6,6 @@ import json
 import random
 import math
 from typing import TypedDict, List
-import uuid
 
 class Node:
   nodeName: str
@@ -92,8 +91,8 @@ class BBO:
 
     # 迭代。
     for i in range(0, self.iterations):
-      self.solutions.sort(key=lambda el: el["HSI"], reverse=True) 
-      # 为了方便迁移率的计算，按照 HSI 的值降序排序，越靠前，解越差。
+      self.solutions.sort(key=lambda el: el["HSI"]) 
+      # 为了方便迁移率的计算，按照 HSI 的值升序排序，越靠前，解越好。
       for j in range(0, self.solution_size):
         # 计算迁移率。
         self.get_move(self.solutions[j], j)
@@ -180,4 +179,5 @@ if __name__ == "__main__":
   with open(os.path.join(cwd_path, "./application/mock.json"), "r") as mock:
     mock_json = json.load(mock)
   solution = BBO(mock_json)
-  print(solution.get_solution())
+  for s in solution.get_solution():
+    print(s)

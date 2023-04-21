@@ -59,7 +59,6 @@ class BBO_Pro:
     self.solutions.sort(key=lambda el: el["ackley_value"], reverse=True)
     # 迭代。
     for i in tqdm(range(0, self.iterations)):
-      # 为了方便迁移率的计算，按照 ackley_value 的值降序排序，越靠前，解越差。
       for solution in self.solutions:
         # 计算迁移率。
         self.get_move(solution)

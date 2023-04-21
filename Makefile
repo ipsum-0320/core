@@ -8,7 +8,7 @@ VECTOR_SIZE_1=5 # 维度较低。
 VECTOR_SIZE_2=30 # 维度适中。
 
 # 参数组 3
-VECTOR_SIZE_3=60 # 维度较高。
+VECTOR_SIZE_3=50 # 维度较高。
 
 MAKEFLAGS += --always-make # 避免使用缓存。
 

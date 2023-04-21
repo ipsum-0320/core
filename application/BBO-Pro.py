@@ -85,15 +85,13 @@ class BBO_Pro:
     self.HSI_min_ids = [] # 群体中具有最小 HSI 值的 id（可能有多个）。
     self.mutation_to_node00_list_len = 3 # 变异为 node00 的随机数列表长度。
 
-
     # 定义变量。
     self.solutions = [] # 一个复杂的数据结构，包含 id、解、迁入迁出率和 HSI 值。
-    self.solutions_map = {} # 为了方便定位排序后的 solution，使用 map 存储 id 和 solution 的映射关系。
+    self.solution_id_map = {} # 为了方便定位排序后的 solution，使用 map 存储 id 和 solution 的映射关系。
     self.task_trans_metrics = [task["calcMetrics"] for task in self.info["tasks"]] # 任务的输入量。
     self.task_calc_metrics = [self.task_calc_density * task["calcMetrics"] for task in self.info["tasks"]] # 任务的计算量。
     self.calc_abilities = self.get_calc_ability() # node 的计算能力。
     self.link_matrix = np.zeros((self.solution_size, self.solution_size), dtype = int) # 拓扑结构采用随机结构，邻接矩阵[i][j] == 1 表示相邻，[i][j] == 0 表示不相邻。
-
 
     for i in range(0, self.solution_size):
       self.solutions.append({
@@ -104,25 +102,25 @@ class BBO_Pro:
         "move_out": None,
       })
 
-    
     # 初始化种群。
     for i in range(0, self.solution_size):
       for j in range(0, self.vector_size):
-        self.solutions[i]["vector"][j] = random.randint(0, self.node_quantity - 1)
+        self.solutions[i]["vector"][j] = random.randint(0, 5)
         if self.info["tasks"][j]["calcMetrics"] > self.calc_metrics_threshold:
           self.solutions[i]["vector"][j] = 0 # 将计算量较大的任务初始分配给 node00（输出保证 0 号元素就是 node00）。
       self.get_HSI(self.solutions[i])
       self.solutions[i]["id"] = i # 绑定编号和解，之后判断是否链接通过 id 判断。
-      self.solutions_map[i] = self.solutions[i]
+      self.solution_id_map[i] = self.solutions[i]
       self.HSI_sum += self.solutions[i]["HSI"]
       self.get_HSI_min(self.solutions[i])
       
     self.link() # 形成各个栖息地之间的链接关系。
     
-    # 开始迭代算法。
+
+    # 迭代。
     for i in range(0, self.iterations):
-      self.solutions.sort(key=lambda el: el["HSI"], reverse=True) 
-      # 为了方便迁移率的计算，按照 HSI 的值降序排序，越靠前，解越差。
+      self.solutions.sort(key=lambda el: el["HSI"])
+      # 为了方便迁移率的计算，按照 HSI 的值升序排序，越靠前，解越好。
       for j in range(0, self.solution_size):
         # 计算迁移率。
         self.get_move(self.solutions[j], j)
@@ -131,6 +129,7 @@ class BBO_Pro:
         self.mutation(self.solutions[j], i)
 
     self.solutions.sort(key=lambda el: el["HSI"]) # 按照 HSI 的值升序排序，排序最前的即是最优解。
+    
   
   def get_solution(self):
     best_solution = self.solutions[0]["vector"]
@@ -185,7 +184,7 @@ class BBO_Pro:
         adjacent_move_out_id_list = [] # 存储相邻栖息地的 id。
         for j in range(0, len(self.link_matrix[solution["id"]])):
           if self.link_matrix[solution["id"]][j] == 1:
-            adjacent_move_out_list.append(self.solutions_map[j]["move_out"])
+            adjacent_move_out_list.append(self.solution_id_map[j]["move_out"])
             adjacent_move_out_id_list.append(j)
         if len(adjacent_move_out_list) == 0:
           # 没有相邻的栖息地，直接执行全局迁移。
@@ -194,12 +193,12 @@ class BBO_Pro:
           for j in range(0, len(self.link_matrix[solution["id"]])):
             if self.link_matrix[solution["id"]][j] == 0:
               if solution["id"] == j: continue
-              non_adjacent_move_out_list.append(self.solutions_map[j]["move_out"])
+              non_adjacent_move_out_list.append(self.solution_id_map[j]["move_out"])
               non_adjacent_move_out_id_list.append(j)
-          selected_non_adjacent_solution = self.solutions_map[non_adjacent_move_out_id_list[roulette(non_adjacent_move_out_list)]]
+          selected_non_adjacent_solution = self.solution_id_map[non_adjacent_move_out_id_list[roulette(non_adjacent_move_out_list)]]
           solution["vector"][i] = selected_non_adjacent_solution["vector"][i]
           continue 
-        selected_adjacent_solution = self.solutions_map[adjacent_move_out_id_list[roulette(adjacent_move_out_list)]]
+        selected_adjacent_solution = self.solution_id_map[adjacent_move_out_id_list[roulette(adjacent_move_out_list)]]
         if random.random() > current_maturity:
           # 执行局部迁移。
           solution["vector"][i] = selected_adjacent_solution["vector"][i]
@@ -210,13 +209,13 @@ class BBO_Pro:
           for j in range(0, len(self.link_matrix[solution["id"]])):
             if self.link_matrix[solution["id"]][j] == 0:
               if solution["id"] == j: continue
-              non_adjacent_move_out_list.append(self.solutions_map[j]["move_out"])
+              non_adjacent_move_out_list.append(self.solution_id_map[j]["move_out"])
               non_adjacent_move_out_id_list.append(j)
           if len(non_adjacent_move_out_list) == 0:
             # 栖息地全部连接，直接从栖息地中执行迁移。
             solution["vector"][i] = selected_adjacent_solution["vector"][i]
             continue
-          selected_non_adjacent_solution = self.solutions_map[non_adjacent_move_out_id_list[roulette(non_adjacent_move_out_list)]]
+          selected_non_adjacent_solution = self.solution_id_map[non_adjacent_move_out_id_list[roulette(non_adjacent_move_out_list)]]
           if selected_non_adjacent_solution["HSI"] < selected_adjacent_solution["HSI"]:
             # 不相邻栖息地迁入。
             solution["vector"][i] = selected_non_adjacent_solution["vector"][i]
@@ -275,9 +274,6 @@ class BBO_Pro:
         if random.random() < adjacent_probability: 
           self.link_matrix[i][j] = 1
           self.link_matrix[j][i] = 1
-        else: 
-          self.link_matrix[i][j] = 0
-          self.link_matrix[j][i] = 0
 
   def get_HSI_min(self, solution):
     if solution["HSI"] < self.HSI_min: # 更新 HSI_min。
@@ -293,4 +289,5 @@ if __name__ == "__main__":
   with open(os.path.join(cwd_path, "./application/mock.json"), "r") as mock:
     mock_json = json.load(mock)
   solution = BBO_Pro(mock_json)
-  print(solution.get_solution())
+  for s in solution.get_solution():
+    print(s)
