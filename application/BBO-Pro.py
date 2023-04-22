@@ -8,7 +8,9 @@ import math
 
 from typing import TypedDict, List
 import numpy as np
+from decimal import Decimal, getcontext
 
+getcontext().prec = 112   # 设置精度为 112
 
 class Node:
   nodeName: str
@@ -23,10 +25,6 @@ class Task:
 class Info(TypedDict):
   nodes: List[Node]
   tasks: List[Task]
-
-def normalized(x):
-  # 使用反正切函数 atan 做数值归一化。
-  return math.atan(x) * (2 / math.pi)
 
 def roulette(origin_list):
   origin_sum = sum(origin_list) 
@@ -60,18 +58,19 @@ class BBO_Pro:
         self.info["tasks"].append(task)
     
     # 定义参数。
-    self.iterations = 50 # 算法的迭代次数。
+    self.iterations = 150 # 算法的迭代次数。
     self.solution_size = 50 # 种群中栖息地的数量，这里指代解的数量。
     self.S_max = 50 # 种群数量的最大值，用于计算迁入迁出率，为了能够同时去到 0 和 1，取 S_max = solution_size - 1。
     self.vector_size = len(self.info["tasks"]) # 解向量的长度。
     self.node_quantity = 6 # 可用于运行 pod 的工作节点数量。
     self.calc_metrics_threshold = 300 # 初始化时，计算任务被分配到 node00 上的计算量阈值。
-    self.time_weight = [round(0.6 + x / 100, 2) for x in range(0, 11)] # 为了能够尽可能取得最优解，选择多个权向量确定不同的搜索方向，其中 time 的权重范围为 [0.6, 0.7]。
+    self.time_weight = [round(0.85 + x / 100, 2) for x in range(0, 11)] # 为了能够尽可能取得最优解，选择多个权向量确定不同的搜索方向。
     self.logistics_K = 0.000025 # logistics 函数中的 K 值，参数的确定基于函数图像的调整。
     self.logistics_X_0 = 300000 # logistics 函数中的 X_0 值，参数的确定基于函数图像的调整。
     self.task_calc_density = 23 # 任务的计算密度。
     self.trans_bandwidth = 20.29 # 传输带宽。
-    self.e_per_time = 3205250 # 单位时间的传输所消耗的能量。
+    self.energy_density = 11.3453 # 任务的能量密度。
+    self.e_per_time = self.task_calc_density * self.trans_bandwidth # 单位时间的传输所消耗的能量。
     self.move_in_max = 1 # 迁入率的最大值。
     self.move_out_max = 1 # 迁出率的最大值。
     self.neighbor_num = 5 # 每个栖息地的相邻栖息地个数。
@@ -92,6 +91,12 @@ class BBO_Pro:
     self.task_calc_metrics = [self.task_calc_density * task["calcMetrics"] for task in self.info["tasks"]] # 任务的计算量。
     self.calc_abilities = self.get_calc_ability() # node 的计算能力。
     self.link_matrix = np.zeros((self.solution_size, self.solution_size), dtype = int) # 拓扑结构采用随机结构，邻接矩阵[i][j] == 1 表示相邻，[i][j] == 0 表示不相邻。
+
+    # 用于归一化的参数。
+    self.min_T = self.get_min_T() # T 的最小值，用于归一化。
+    self.max_T = self.get_max_T() # T 的最大值，用于归一化。
+    self.min_E = sum([self.energy_density * calc for calc in self.task_calc_metrics]) # E 的最小值，用于归一化。
+    self.max_E = self.min_E + sum([self.e_per_time * tran / self.trans_bandwidth for tran in self.task_trans_metrics]) # E 的最大值，用于归一化。
 
     for i in range(0, self.solution_size):
       self.solutions.append({
@@ -116,7 +121,6 @@ class BBO_Pro:
       
     self.link() # 形成各个栖息地之间的链接关系。
     
-
     # 迭代。
     for i in range(0, self.iterations):
       self.solutions.sort(key=lambda el: el["HSI"])
@@ -130,7 +134,30 @@ class BBO_Pro:
 
     self.solutions.sort(key=lambda el: el["HSI"]) # 按照 HSI 的值升序排序，排序最前的即是最优解。
     
-  
+  def get_min_T(self):
+    # 计算 min_T，采取充分利用假说来估计 min_T。
+    sum_ability = sum(self.calc_abilities) # 总计算能力。
+    sum_calc = sum(self.task_calc_metrics) # 总计算量。
+    t_1 = sum_calc / sum_ability # 理想的计算时延。
+    node00_alpha = self.calc_abilities[0] / sum_ability # node00 计算能力占比，可以等价为其处理的计算量占比。
+    sum_trans = node00_alpha * sum(self.task_trans_metrics) # 传到到中心云的数据量。 
+    t_2 = sum_trans / self.trans_bandwidth # 理想的传输时延。
+    return t_1 + t_2
+
+  def get_max_T(self):
+    # 计算 max_T，计算方法是将所有的任务分配给计算能力最差的节点。
+    min_calc_ability = min(self.calc_abilities)
+    min_index = self.calc_abilities.index(min_calc_ability)
+    vector = [min_index for _ in range(0, self.vector_size)]
+    tasks_assigned_per_node = [0, 0, 0, 0, 0, 0] 
+    for el in vector:
+      tasks_assigned_per_node[el] = tasks_assigned_per_node[el] + 1
+    T = 0
+    for i in range(0, self.vector_size):
+      T = T + self.task_calc_metrics[i] / (self.calc_abilities[vector[i]] / tasks_assigned_per_node[vector[i]])
+    return T
+    
+
   def get_solution(self):
     best_solution = self.solutions[0]["vector"]
     best_solution_map_list = []
@@ -154,15 +181,21 @@ class BBO_Pro:
     HSI = sys.maxsize
     T = 0
     E = 0
+    tasks_assigned_per_node = [0, 0, 0, 0, 0, 0] 
+    # 存储每个节点分配的任务个数。
+    for el in solution["vector"]:
+      tasks_assigned_per_node[el] = tasks_assigned_per_node[el] + 1
     for i in range(0, len(solution["vector"])):
       vector_el = solution["vector"][i]
-      T = T + self.task_calc_metrics[i] / self.calc_abilities[vector_el]
-      E = E + self.task_calc_metrics[i] * (self.calc_abilities[vector_el] ** 2)
+      T = T + self.task_calc_metrics[i] / (self.calc_abilities[vector_el] / tasks_assigned_per_node[vector_el]) # 给节点重复分配任务会导致运行时间提高。
+      E = E + self.energy_density * self.task_calc_metrics[i] # 给节点重复分配任务不会导致运行能耗改变。
       if vector_el == 0:
-        T = T + self.task_trans_metrics[i] / self.trans_bandwidth
-        E = E + self.e_per_time * self.task_trans_metrics[i] / self.trans_bandwidth
+        T = T + self.task_trans_metrics[i] / self.trans_bandwidth # 给节点重复分配任务不会导致传输时间改变。
+        E = E + self.e_per_time * self.task_trans_metrics[i] / self.trans_bandwidth # 给节点重复分配任务不会导致传输能耗改变。
+    normalized_T = Decimal((T - self.min_T) / (self.max_T - self.min_T)) # 归一化的 T。
+    normalized_E = Decimal((E - self.min_E) / (self.max_E - self.min_E)) # 归一化的 E。
     for weight in self.time_weight:
-      HSI = min(HSI, weight * normalized(T) + (1 - weight) * normalized(E))
+      HSI = min(HSI, Decimal(weight) * normalized_T + Decimal(1 - weight) * normalized_E)
     solution["HSI"] = HSI
   
   def get_calc_ability(self):
