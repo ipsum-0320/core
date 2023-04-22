@@ -33,37 +33,37 @@
   ],
   "tasks": [
     {
-      "podName": "ai-task-5s",
+      "podName": "ai-task-5s-{i}",
       "image": "ai-task-5s",
       "nums": "2",
       "calcMetrics": "121"
     },
     {
-      "podName": "ai-task-7s",
+      "podName": "ai-task-7s-{i}",
       "image": "ai-task-7s",
       "nums": "2",
       "calcMetrics": "169"
     },
     {
-      "podName": "ai-task-9s",
+      "podName": "ai-task-9s-{i}",
       "image": "ai-task-9s",
       "nums": "2",
       "calcMetrics": "218"
     },
     {
-      "podName": "ai-task-11s",
+      "podName": "ai-task-11s-{i}",
       "image": "ai-task-11s",
       "nums": "2",
       "calcMetrics": "267"
     },
     {
-      "podName": "ai-task-13s",
+      "podName": "ai-task-13s-{i}",
       "image": "ai-task-13s",
       "nums": "2",
       "calcMetrics": "315"
     },
     {
-      "podName": "ai-task-15s",
+      "podName": "ai-task-15s-{i}",
       "image": "ai-task-15s",
       "nums": "2",
       "calcMetrics": "364"

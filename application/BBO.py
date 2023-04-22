@@ -1,4 +1,5 @@
 import sys
+
 sys.dont_write_bytecode = True
 
 import os
@@ -7,6 +8,10 @@ import random
 import math
 from typing import TypedDict, List
 from decimal import Decimal, getcontext
+from tqdm import tqdm
+import numpy as np
+
+
 
 getcontext().prec = 112   # 设置精度为 112
 
@@ -48,7 +53,7 @@ class BBO:
     for val in json["tasks"]:
       for i in range(1, int(val["nums"]) + 1):
         task: Task = {
-          "podName": "%s-%d" % (val["podName"], i),
+          "podName": "%s-%d" % (val["podName"][:-4], i),
           "image": val["image"],
           "calcMetrics": int(val["calcMetrics"])
         }
@@ -63,7 +68,7 @@ class BBO:
     self.move_out_max = 1 # 迁出率最大值。
     self.mutation_p = 0.01 # 变异率。
     self.node_quantity = 6 # 可用于运行 pod 的工作节点数量。
-    self.time_weight = [round(0.85 + x / 100, 2) for x in range(0, 11)] # 为了能够尽可能取得最优解，选择多个权向量确定不同的搜索方向。
+    self.time_weight = [round(0.85 + x / 100, 2) for x in range(0, 6)] # 为了能够尽可能取得最优解，选择多个权向量确定不同的搜索方向。
     self.logistics_K = 0.000025 # logistics 函数中的 K 值，参数的确定基于函数图像的调整。
     self.logistics_X_0 = 300000 # logistics 函数中的 X_0 值，参数的确定基于函数图像的调整。
     self.task_calc_density = 23 # 任务的计算密度。
@@ -77,6 +82,7 @@ class BBO:
     self.task_trans_metrics = [task["calcMetrics"] for task in self.info["tasks"]] # 任务的输入量。
     self.task_calc_metrics = [self.task_calc_density * task["calcMetrics"] for task in self.info["tasks"]] # 任务的计算量。
     self.calc_abilities = self.get_calc_ability() # node 的计算能力。
+    self.data_min = [] # 存储迭代过程中的最优值。
 
     # 用于归一化的参数。
     self.min_T = self.get_min_T() # T 的最小值，用于归一化。
@@ -98,8 +104,8 @@ class BBO:
       self.get_HSI(solution)
 
     # 迭代。
-    for i in range(0, self.iterations):
-      self.solutions.sort(key=lambda el: el["HSI"]) 
+    self.solutions.sort(key=lambda el: el["HSI"])
+    for i in tqdm(range(0, self.iterations)):
       # 为了方便迁移率的计算，按照 HSI 的值升序排序，越靠前，解越好。
       for j in range(0, self.solution_size):
         # 计算迁移率。
@@ -107,8 +113,11 @@ class BBO:
       for solution in self.solutions:
         self.move(solution)
         self.mutation(solution)
+      self.solutions.sort(key=lambda el: el["HSI"])
+      self.data_min.append([i + 1, self.solutions[0]["HSI"]])
     
-    self.solutions.sort(key=lambda el: el["HSI"])
+    cwd_path = os.getcwd()
+    np.savetxt(os.path.join(cwd_path, "./application/data/BBO.txt"), np.array(self.data_min), header="Iteration Cost",  fmt="%d %f")
 
   def get_min_T(self):
     # 计算 min_T，采取充分利用假说来估计 min_T。
@@ -171,6 +180,9 @@ class BBO:
 
   def get_solution(self):
     best_solution = self.solutions[0]["vector"]
+    print("best_cost: ", self.solutions[0]["HSI"])
+    print()
+    print("best_solution: ")
     best_solution_map_list = []
     for i in range(0, len(self.info["tasks"])):
       best_solution_map = {
@@ -215,6 +227,8 @@ if __name__ == "__main__":
   cwd_path = os.getcwd()
   with open(os.path.join(cwd_path, "./application/mock.json"), "r") as mock:
     mock_json = json.load(mock)
+  print() # 空行。
   solution = BBO(mock_json)
+  print() # 空行。
   for s in solution.get_solution():
     print(s)

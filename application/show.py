@@ -10,9 +10,9 @@ cwd_path = os.getcwd()
 if __name__ == "__main__":
   # show.py 用于展示不同算法的效果。
 
-  BBO_Pro = np.loadtxt(os.path.join(cwd_path, "./algorithm/data/BBO-Pro.txt")).T.tolist()
-  BBO = np.loadtxt(os.path.join(cwd_path, "./algorithm/data/BBO.txt")).T.tolist()
-  GA = np.loadtxt(os.path.join(cwd_path, "./algorithm/data/GA.txt")).T.tolist()
+  BBO_Pro = np.loadtxt(os.path.join(cwd_path, "./application/data/BBO-Pro.txt")).T.tolist()
+  BBO = np.loadtxt(os.path.join(cwd_path, "./application/data/BBO.txt")).T.tolist()
+  GA = np.loadtxt(os.path.join(cwd_path, "./application/data/GA.txt")).T.tolist()
 
 
   fig, ax = plt.subplots()
@@ -23,9 +23,9 @@ if __name__ == "__main__":
 
   ax.xaxis.set_major_locator(plt.MaxNLocator(integer=True)) # 显示整数刻度。
 
-  ax.set_title("Performance of Minimum \nAckley Function Value")
+  ax.set_title("Performance of Minimum \nCost Value")
   ax.set_xlabel("Iterations")
-  ax.set_ylabel("Minimum Ackley Function Value")
+  ax.set_ylabel("Minimum Cost Value")
   ax.legend()
 
   plt.show()

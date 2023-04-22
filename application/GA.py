@@ -8,6 +8,10 @@ import math
 from typing import TypedDict, List
 import uuid
 from decimal import Decimal, getcontext
+from tqdm import tqdm
+import numpy as np
+
+
 
 getcontext().prec = 112   # 设置精度为 112
 
@@ -49,7 +53,7 @@ class GA:
     for val in json["tasks"]:
       for i in range(1, int(val["nums"]) + 1):
         task: Task = {
-          "podName": "%s-%d" % (val["podName"], i),
+          "podName": "%s-%d" % (val["podName"][:-4], i),
           "image": val["image"],
           "calcMetrics": int(val["calcMetrics"])
         }
@@ -60,7 +64,7 @@ class GA:
     self.solution_size = 50 # 种群中栖息地的数量，这里指代解的数量。
     self.vector_size = len(self.info["tasks"]) # 解向量的长度。
     self.node_quantity = 6 # 可用于运行 pod 的工作节点数量。
-    self.time_weight = [round(0.85 + x / 100, 2) for x in range(0, 11)] # 为了能够尽可能取得最优解，选择多个权向量确定不同的搜索方向。
+    self.time_weight = [round(0.85 + x / 100, 2) for x in range(0, 6)] # 为了能够尽可能取得最优解，选择多个权向量确定不同的搜索方向。
     self.logistics_K = 0.000025 # logistics 函数中的 K 值，参数的确定基于函数图像的调整。
     self.logistics_X_0 = 300000 # logistics 函数中的 X_0 值，参数的确定基于函数图像的调整。
     self.task_calc_density = 23 # 任务的计算密度。
@@ -83,6 +87,7 @@ class GA:
     self.selected_solutions = [] # 被选中的父母解。
     self.selected_solutions_not_crossovered = {} # 被选中且尚未交叉的父母解。
     self.offspring_solutions = [] # 后代解向量。
+    self.data_min = [] # 存储迭代过程中的最优值。
 
     # 用于归一化的参数。
     self.min_T = self.get_min_T() # T 的最小值，用于归一化。
@@ -101,7 +106,7 @@ class GA:
       self.get_cost(solution)
 
     # 迭代。
-    for i in range(0, self.iterations):
+    for i in tqdm(range(0, self.iterations)):
       self.select()
       for solution in self.selected_solutions:
         if solution["is_crossover"] == False:
@@ -109,6 +114,10 @@ class GA:
       self.solutions = self.solutions + self.offspring_solutions # 合并种群。
       self.solutions.sort(key=lambda el: el["cost"]) # 筛选优质个体。
       self.solutions = self.solutions[:self.solution_size]
+      self.data_min.append([i + 1, self.solutions[0]["cost"]])
+
+    cwd_path = os.getcwd()
+    np.savetxt(os.path.join(cwd_path, "./application/data/GA.txt"), np.array(self.data_min), header="Iteration Cost",  fmt="%d %f")
   
   def get_min_T(self):
     # 计算 min_T，采取充分利用假说来估计 min_T。
@@ -143,6 +152,9 @@ class GA:
 
   def get_solution(self):
     best_solution = self.solutions[0]["vector"]
+    print("best_cost: ", self.solutions[0]["cost"])
+    print()
+    print("best_solution: ")
     best_solution_map_list = []
     for i in range(0, len(self.info["tasks"])):
       best_solution_map = {
@@ -299,6 +311,8 @@ if __name__ == "__main__":
   cwd_path = os.getcwd()
   with open(os.path.join(cwd_path, "./application/mock.json"), "r") as mock:
     mock_json = json.load(mock)
+  print() # 空行。
   solution = GA(mock_json)
+  print() # 空行。
   for s in solution.get_solution():
     print(s)
