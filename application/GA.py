@@ -60,7 +60,7 @@ class GA:
         self.info["tasks"].append(task)
     
     # 参数设置。
-    self.iterations = 150 # 算法的迭代次数。
+    self.iterations = 80 # 算法的迭代次数。
     self.solution_size = 50 # 种群中栖息地的数量，这里指代解的数量。
     self.vector_size = len(self.info["tasks"]) # 解向量的长度。
     self.node_quantity = 6 # 可用于运行 pod 的工作节点数量。

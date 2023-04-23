@@ -60,7 +60,7 @@ class BBO:
         self.info["tasks"].append(task)
 
     # 定义参数。
-    self.iterations = 150 # 算法的迭代次数。
+    self.iterations = 80 # 算法的迭代次数。
     self.solution_size = 50 # 种群中栖息地的数量，这里指代解的数量。
     self.S_max = 50 # 种群数量的最大值，用于计算迁入迁出率，为了能够同时去到 0 和 1，取 S_max = solution_size - 1。
     self.vector_size = len(self.info["tasks"]) # 解向量的长度。
