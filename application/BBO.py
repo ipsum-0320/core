@@ -75,6 +75,7 @@ class BBO:
     self.trans_bandwidth = 20.29 # 传输带宽。
     self.energy_density = 11.3453 # 任务的能量密度。
     self.e_per_time = self.task_calc_density * self.trans_bandwidth # 单位时间的传输所消耗的能量。
+    self.mutation_to_node00_list_len = 8
 
     # 定义变量。
     self.solutions = [] # 解向量。
@@ -216,7 +217,8 @@ class BBO:
     copy_solution = solution.copy() # 精英保存策略。
     for i in range(0, self.vector_size):
       if random.random() < self.mutation_p:
-        solution["vector"][i] = random.randint(0, 5)
+        node = random.randint(-(self.mutation_to_node00_list_len - 1), self.node_quantity - 1) 
+        solution["vector"][i] = 0 if node <= 0 else node
     self.get_HSI(solution)
     if solution["HSI"] > copy_solution["HSI"]: # 得到劣化解。
       solution["HSI"] = copy_solution["HSI"]
