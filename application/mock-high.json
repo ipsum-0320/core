@@ -1,0 +1,72 @@
+{
+  "nodes": [
+    {
+      "nodeName": "node00",
+      "cpu": 19258.4,
+      "mem": 55095907.2
+    },
+    {
+      "nodeName": "node01",
+      "cpu": 94.4,
+      "mem": 247431
+    },
+    {
+      "nodeName": "node02",
+      "cpu": 92.8,
+      "mem": 316205
+    },
+    {
+      "nodeName": "node03",
+      "cpu": 95.2,
+      "mem": 134562
+    },
+    {
+      "nodeName": "node04",
+      "cpu": 96,
+      "mem": 251719
+    },
+    {
+      "nodeName": "node05",
+      "cpu": 94.8,
+      "mem": 128229
+    }
+  ],
+  "tasks": [
+    {
+      "podName": "ai-task-5s-{i}",
+      "image": "ai-task-5s",
+      "nums": "25",
+      "calcMetrics": "121"
+    },
+    {
+      "podName": "ai-task-7s-{i}",
+      "image": "ai-task-7s",
+      "nums": "25",
+      "calcMetrics": "169"
+    },
+    {
+      "podName": "ai-task-9s-{i}",
+      "image": "ai-task-9s",
+      "nums": "25",
+      "calcMetrics": "218"
+    },
+    {
+      "podName": "ai-task-11s-{i}",
+      "image": "ai-task-11s",
+      "nums": "25",
+      "calcMetrics": "267"
+    },
+    {
+      "podName": "ai-task-13s-{i}",
+      "image": "ai-task-13s",
+      "nums": "25",
+      "calcMetrics": "315"
+    },
+    {
+      "podName": "ai-task-15s-{i}",
+      "image": "ai-task-15s",
+      "nums": "25",
+      "calcMetrics": "364"
+    }
+  ]
+}

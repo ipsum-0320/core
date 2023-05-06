@@ -1,13 +1,13 @@
 PYTHON=python
 PIP=pip
 
-# 参数组 1 
+# alg-参数组 1 
 VECTOR_SIZE_1=5 # 维度较低。
 
-# 参数组 2
+# alg-参数组 2
 VECTOR_SIZE_2=30 # 维度适中。
 
-# 参数组 3
+# alg-参数组 3
 VECTOR_SIZE_3=50 # 维度较高。
 
 MAKEFLAGS += --always-make # 避免使用缓存。
@@ -57,16 +57,40 @@ endif
 show:
 	$(PYTHON) algorithm/show.py
 
+# app-参数组 1 
+MOCK_1=mock-mid # 维度适中。
+
+# app-参数组 2
+MOCK_2=mock-high # 维度较高。
+
 all-app: BBO-Pro-app BBO-app GA-app
 
 BBO-Pro-app:
-	$(PYTHON) application/BBO-Pro.py
+ifeq ($(m), 1)
+	$(PYTHON) application/BBO-Pro.py $(MOCK_1) 
+else ifeq ($(m), 2)
+	$(PYTHON) application/BBO-Pro.py $(MOCK_2) 
+else
+	@echo "Please specify a valid set of parameters: m=1/2"
+endif
 
 BBO-app:
-	$(PYTHON) application/BBO.py
+ifeq ($(m), 1)
+	$(PYTHON) application/BBO.py $(MOCK_1) 
+else ifeq ($(m), 2)
+	$(PYTHON) application/BBO.py $(MOCK_2) 
+else
+	@echo "Please specify a valid set of parameters: m=1/2"
+endif
 
 GA-app:
-	$(PYTHON) application/GA.py
+ifeq ($(m), 1)
+	$(PYTHON) application/GA.py $(MOCK_1) 
+else ifeq ($(m), 2)
+	$(PYTHON) application/GA.py $(MOCK_2) 
+else
+	@echo "Please specify a valid set of parameters: m=1/2"
+endif
 
 show-app:
 	$(PYTHON) application/show.py

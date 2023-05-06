@@ -60,7 +60,7 @@ class BBO:
         self.info["tasks"].append(task)
 
     # 定义参数。
-    self.iterations = 80 # 算法的迭代次数。
+    self.iterations = 150 # 算法的迭代次数。
     self.solution_size = 50 # 种群中栖息地的数量，这里指代解的数量。
     self.S_max = 50 # 种群数量的最大值，用于计算迁入迁出率，为了能够同时去到 0 和 1，取 S_max = solution_size - 1。
     self.vector_size = len(self.info["tasks"]) # 解向量的长度。
@@ -226,8 +226,9 @@ class BBO:
     
 
 if __name__ == "__main__":
+  mock_file = str(sys.argv[1])
   cwd_path = os.getcwd()
-  with open(os.path.join(cwd_path, "./application/mock.json"), "r") as mock:
+  with open(os.path.join(cwd_path, "./application/" + mock_file + ".json"), "r") as mock:
     mock_json = json.load(mock)
   print() # 空行。
   solution = BBO(mock_json)

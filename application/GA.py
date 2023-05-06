@@ -60,7 +60,7 @@ class GA:
         self.info["tasks"].append(task)
     
     # 参数设置。
-    self.iterations = 80 # 算法的迭代次数。
+    self.iterations = 150 # 算法的迭代次数。
     self.solution_size = 50 # 种群中栖息地的数量，这里指代解的数量。
     self.vector_size = len(self.info["tasks"]) # 解向量的长度。
     self.node_quantity = 6 # 可用于运行 pod 的工作节点数量。
@@ -308,8 +308,9 @@ class GA:
     return mutationed_vector_bin
 
 if __name__ == "__main__":
+  mock_file = str(sys.argv[1])
   cwd_path = os.getcwd()
-  with open(os.path.join(cwd_path, "./application/mock.json"), "r") as mock:
+  with open(os.path.join(cwd_path, "./application/" + mock_file + ".json"), "r") as mock:
     mock_json = json.load(mock)
   print() # 空行。
   solution = GA(mock_json)
