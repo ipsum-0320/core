@@ -22,8 +22,7 @@ class BBO_Pro:
     self.move_out_max = 1 # 迁出率的最大值。
     self.neighbor_num = 5 # 每个栖息地的相邻栖息地个数。
     self.maturity_max = 0.75 # 成熟度的最大值。
-    self.maturity_min = 0.3 # 成熟度的最小值。
-    self.iteration_threshold = 550 # 进入后期变异概率自适应阶段的迭代次数阈值。
+    self.maturity_min = 0.3 # 成熟度的最小值。 
     self.mutation_m1 = 0.01 # 前期寻优阶段的固定变异概率。
     self.mutation_m2 = 0.0025 # 后期自适应阶段的基础变异概率。
     self.iterations = iterations # 迭代次数。
@@ -32,6 +31,7 @@ class BBO_Pro:
     self.ackley_value_sum = 0 # 种群中所有解对应的 ackley value 的和值。
     self.ackley_value_min = sys.maxsize # 群体中 ackley_value 的最小值。 
     self.ackley_value_min_ids = [] # 群体中具有最小 ackley_value 值的 id（可能有多个）。
+    self.iteration_threshold = math.floor(self.iterations * 0.8) # 进入后期变异概率自适应阶段的迭代次数阈值。
 
     # 定义变量。
     self.solutions = [] # 解向量。
@@ -167,6 +167,7 @@ class BBO_Pro:
   def mutation(self, solution, current_iteration):
     # 算法的变异阶段分为两部分，前期执行固定概率的变异操作，而后期则使变异概率随着则随着解质量的改变而动态变化。
     mutation_p = None
+    self.iteration_threshold = 550
     if current_iteration <= self.iteration_threshold: # 前期寻优阶段。
       mutation_p = self.mutation_m1
     else: # 后期自适应阶段。
